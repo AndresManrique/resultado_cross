@@ -144,12 +144,16 @@ class DatasetPanoptic(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         # Load segmentation map image
         image_list = listdir(self.img_seg_dir)
-        image_path = osp.join(self.img_seg_dir, image_list[idx])
+        img_name = image_list[idx]
+        image_path = osp.join(self.img_seg_dir, img_name)
         image = cv2.imread(image_path)  # Or PIL.Image.open - Mapa de segmentacion
 
         # Load real image
         image_list = listdir(self.img_base_dir)
-        image_path = osp.join(self.img_base_dir, image_list[idx])
+        new_idx = image_list.index(img_name[:len(img_name)-4]+".jpg")
+        new_image = image_list[new_idx]
+        print(new_image)
+        image_path = osp.join(self.img_base_dir, new_image)
         real_image = cv2.imread(image_path)  # Or PIL.Image.open - Mapa de segmentacion
 
         # Transformations are applied for input image mejor 1:15 para no hacerlos esperar! recuerden traer sus arduinos
