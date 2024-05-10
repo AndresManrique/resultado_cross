@@ -25,7 +25,7 @@ from tifffile import imsave
 
 # Arguments
 parser = argparse.ArgumentParser(description='PyTorch finetuning image generation model')
-parser.add_argument('--batch-size', type=int, default=24, metavar='N',
+parser.add_argument('--batch-size', type=int, default=16, metavar='N',
                     help='input batch size for training (default: 32)')
 parser.add_argument('--test-batch-size', type=int, default=1, metavar='N',
                     help='input batch size for testing (default: 128)')
@@ -152,7 +152,6 @@ class DatasetPanoptic(torch.utils.data.Dataset):
         image_list = listdir(self.img_base_dir)
         new_idx = image_list.index(img_name[:len(img_name)-4]+".jpg")
         new_image = image_list[new_idx]
-        print(new_image)
         image_path = osp.join(self.img_base_dir, new_image)
         real_image = cv2.imread(image_path)  # Or PIL.Image.open - Mapa de segmentacion
 
@@ -196,23 +195,20 @@ def test_function(save_img = False):
                 output = model(data, target)  # Obtains model output
                 output = output.to(device)  # Move output to the same device as target
 
-                test_loss +=  nn.functional.mse_loss(output, target).data.item()  # Add model loss to previously initialized variable
+                test_loss +=  nn.functional.cross_entropy(output, target).data.item()  # Add model loss to previously initialized variable
                 if i < 10 and save_img:
                     img_seg = data.to("cpu").numpy()[0]
-                    print(np.shape(img_seg))
                     imsave("seg_"+str(i)+".tiff", img_seg)  # Saves as PNG format
                     img_target = target.to("cpu").numpy()[0]
-                    print(np.shape(img_target))
                     imsave("target_"+str(i)+".tiff",img_target)  # Saves as PNG format
                     img_out = output.to("cpu").numpy()[0]
-                    print(np.shape(img_out))
-                    imsave("output_"+str(i)+".png", img_out)  # Saves as PNG format
+                    imsave("output_"+str(i)+".tiff", img_out)  # Saves as PNG format
                     i += 1
 
                 elif torch.max(data) == 0:
                     print("Se encontró imagen sin segmentacion")
                     pass
-                elif i > 8:
+                elif i > 9:
                     print("Finalizando ciclo de validación para muestreo")
                     break
             else:
@@ -229,8 +225,9 @@ def train_function(each_epoch):
             optimizer.zero_grad()
             predictions = model(data, target)
             predictions = predictions.to(device)  # Move predictions to the same device as target
-            loss = nn.functional.mse_loss(predictions, target)
-            loss_list_train.append(loss)
+            loss = nn.functional.cross_entropy(predictions, target)
+            loss_list_train.append(loss.data.item())
+            print(loss_list_train)
             loss.backward()
             optimizer.step()
         else:
